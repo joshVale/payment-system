@@ -35,11 +35,11 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentDto getPaymentById(UUID id) {
-        Payment payment = paymentRepository.findById(id)
+        return paymentRepository.findById(id)
+                .map(paymentMapper::toPaymentDto)
                 .orElseThrow(() ->
                         new EntityNotFoundException("Платеж не найден", "find-by-id-op", id)
                 );
-        return paymentMapper.toPaymentDto(payment);
     }
 
     @Override
@@ -52,7 +52,6 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentDto createPayment(PaymentDto paymentDto) {
         Payment payment =  paymentMapper.toPaymentEntity(paymentDto);
-        payment.setGuid(null);
         Payment savedPayment = paymentRepository.save(payment);
         return paymentMapper.toPaymentDto(savedPayment);
     }
@@ -62,18 +61,13 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentDto updatePayment(UUID id, PaymentDto dto) {
         Payment payment = paymentRepository.findByGuidForUpdate(id)
                 .orElseThrow(() ->
-                        new EntityNotFoundException("Платеж не найден", "update-op", id)
-                );
-
-        payment.setAmount(dto.amount());
-        payment.setCurrency(dto.currency());
-        payment.setNote(dto.note());
-        payment.setStatus(dto.status());
-        payment.setUpdatedAt(dto.updatedAt());
-
+                        new EntityNotFoundException("Платеж не найден", "update-op", id));
+        paymentMapper.updatePaymentFromDto(dto, payment);
         Payment saved = paymentRepository.save(payment);
+
         return paymentMapper.toPaymentDto(saved);
     }
+
 
     @Override
     @Transactional

@@ -1,9 +1,10 @@
-package com.example.paymentserviceapp.controller;
+package com.example.paymentserviceapp.controller.v1;
 
 import com.example.paymentserviceapp.dto.PaymentDto;
 import com.example.paymentserviceapp.dto.request.PaymentFilterRequest;
 import com.example.paymentserviceapp.dto.request.PaymentRequest;
 import com.example.paymentserviceapp.dto.response.PaymentResponse;
+import com.example.paymentserviceapp.exception.EntityNotFoundException;
 import com.example.paymentserviceapp.mapper.PaymentApiMapper;
 import com.example.paymentserviceapp.mapper.PaymentFilterMapper;
 import com.example.paymentserviceapp.persistency.PaymentFilter;
@@ -30,7 +31,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/payments")
+@RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
 public class PaymentController {
 
@@ -68,9 +69,14 @@ public class PaymentController {
 
     @DeleteMapping("/{guid}")
     public ResponseEntity<Void> delete(@PathVariable UUID guid) {
-        paymentService.delete(guid);
-        return ResponseEntity.noContent().build();
+        try {
+            paymentService.delete(guid);
+            return ResponseEntity.ok().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.noContent().build();
+        }
     }
+
 
     @GetMapping("/{guid}")
     public ResponseEntity<PaymentResponse> getPayment(@PathVariable UUID guid) {

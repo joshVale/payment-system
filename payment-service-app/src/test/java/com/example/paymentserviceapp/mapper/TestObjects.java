@@ -9,30 +9,30 @@ import static com.example.paymentserviceapp.mapper.TestConstants.*;
 public class TestObjects {
 
     public static Payment createPaymentEntity() {
-        Payment payment = new Payment();
-        payment.setGuid(PAYMENT_GUID);
-        payment.setInquiryRefId(INQUIRY_REF_ID);
-        payment.setAmount(AMOUNT_1200);
-        payment.setCurrency(CURRENCY_USD);
-        payment.setTransactionRefId(TRANSACTION_REF_ID);
-        payment.setStatus(PaymentStatus.CREATED);
-        payment.setNote(NOTE_TEST_PAYMENT);
-        payment.setCreatedAt(CREATED_AT);
-        payment.setUpdatedAt(UPDATED_AT);
-        return payment;
+        return Payment.builder()
+                .guid(PAYMENT_GUID)
+                .inquiryRefId(INQUIRY_REF_ID)
+                .amount(AMOUNT_1200)
+                .currency(CURRENCY_USD)
+                .transactionRefId(TRANSACTION_REF_ID)
+                .status(PaymentStatus.CREATED)
+                .note(NOTE_TEST_PAYMENT)
+                .createdAt(CREATED_AT)
+                .updatedAt(UPDATED_AT)
+                .build();
     }
 
     public static PaymentDto createPaymentDto() {
-        return new PaymentDto(
-                PAYMENT_GUID,
-                INQUIRY_REF_ID,
-                AMOUNT_550,
-                CURRENCY_EUR,
-                TRANSACTION_REF_ID,
-                PaymentStatus.PENDING,
-                NOTE_INVOICE_22,
-                CREATED_AT.minusDays(1),
-                UPDATED_AT
-        );
+        return PaymentDto.builder()
+                .guid(PAYMENT_GUID)
+                .inquiryRefId(INQUIRY_REF_ID)
+                .amount(AMOUNT_550)
+                .currency(CURRENCY_EUR)
+                .transactionRefId(TRANSACTION_REF_ID)
+                .status(PaymentStatus.PENDING)
+                .note(NOTE_INVOICE_22)
+                .createdAt(CREATED_AT.minusDays(1))
+                .updatedAt(UPDATED_AT)
+                .build();
     }
 }

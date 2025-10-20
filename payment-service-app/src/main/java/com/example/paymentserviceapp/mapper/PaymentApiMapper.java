@@ -13,24 +13,15 @@ import java.util.List;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface PaymentApiMapper {
 
-    @Mapping(target = "guid", source = "guid")
-    @Mapping(target = "inquiryRefId", source = "inquiryRefId")
-    @Mapping(target = "amount", source = "amount")
-    @Mapping(target = "currency", source = "currency")
-    @Mapping(target = "transactionRefId", source = "transactionRefId")
-    @Mapping(target = "status", source = "status")
-    @Mapping(target = "note", source = "note")
-    @Mapping(target = "createdAt", source = "createdAt")
-    @Mapping(target = "updatedAt", source = "updatedAt")
     PaymentResponse toResponse(PaymentDto paymentDto);
 
     List<PaymentResponse> toResponseList(List<PaymentDto> paymentDtos);
 
     @Mapping(target = "guid", ignore = true)
     @Mapping(target = "transactionRefId", ignore = true)
-    @Mapping(target = "status", constant = "CREATED") // или PaymentStatus.CREATED
-    @Mapping(target = "createdAt", expression = "java(java.time.OffsetDateTime.now())")
-    @Mapping(target = "updatedAt", expression = "java(java.time.OffsetDateTime.now())")
+    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     PaymentDto toDto(PaymentRequest request);
 }
 

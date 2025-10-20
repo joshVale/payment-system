@@ -1,31 +1,30 @@
 package com.example.paymentserviceapp.exception;
 
 import com.example.paymentserviceapp.dto.ErrorDto;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorDto handleEntityNotFound(EntityNotFoundException ex) {
-        return new ErrorDto(
+    @ExceptionHandler(BasePaymentSystemException.class)
+    public ResponseEntity<ErrorDto> handleBaseException(BasePaymentSystemException ex) {
+        ErrorDto errorDto = new ErrorDto(
                 ex.getEntityId(),
                 ex.getOperation(),
                 ex.getMessage()
         );
+        return ResponseEntity.status(ex.getStatus()).body(errorDto);
     }
 
     @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorDto handleOtherExceptions(Exception ex) {
-        return new ErrorDto(
+    public ResponseEntity<ErrorDto> handleOtherExceptions(Exception ex) {
+        ErrorDto errorDto = new ErrorDto(
                 null,
                 "unknown-op",
                 ex.getMessage()
         );
+        return ResponseEntity.internalServerError().body(errorDto);
     }
 }
