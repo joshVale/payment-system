@@ -10,12 +10,21 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BasePaymentSystemException.class)
     public ResponseEntity<ErrorDto> handleBaseException(BasePaymentSystemException ex) {
+        if (ex instanceof EntityNotFoundException enfe) {
+            ErrorDto errorDto = new ErrorDto(
+                    enfe.getEntityId(),
+                    enfe.getOperation(),
+                    enfe.getMessage()
+            );
+            return ResponseEntity.status(enfe.getStatus()).body(errorDto);
+        }
+
         ErrorDto errorDto = new ErrorDto(
-                ex.getEntityId(),
-                ex.getOperation(),
+                null,
+                "unknown-op",
                 ex.getMessage()
         );
-        return ResponseEntity.status(ex.getStatus()).body(errorDto);
+        return ResponseEntity.internalServerError().body(errorDto);
     }
 
     @ExceptionHandler(Exception.class)
