@@ -19,7 +19,7 @@ public interface PaymentApiMapper {
 
     @Mapping(target = "guid", ignore = true)
     @Mapping(target = "transactionRefId", ignore = true)
-    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "status", constant = "CREATED")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     PaymentDto toDto(PaymentRequest request);

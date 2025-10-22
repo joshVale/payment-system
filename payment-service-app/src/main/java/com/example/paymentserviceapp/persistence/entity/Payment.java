@@ -2,6 +2,7 @@ package com.example.paymentserviceapp.persistence.entity;
 
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
@@ -57,10 +58,15 @@ public class Payment {
     @Column(name = "note", columnDefinition = "text")
     private String note;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_at", nullable = false, insertable = false)
     private OffsetDateTime updatedAt;
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = OffsetDateTime.now();
+    }
 }
 
