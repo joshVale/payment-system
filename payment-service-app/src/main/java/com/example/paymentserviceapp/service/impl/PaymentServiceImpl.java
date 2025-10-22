@@ -1,11 +1,14 @@
 package com.example.paymentserviceapp.service.impl;
+
 import com.example.paymentserviceapp.dto.PaymentDto;
+import com.example.paymentserviceapp.exception.EntityNotFoundException;
 import com.example.paymentserviceapp.mapper.PaymentMapper;
 import com.example.paymentserviceapp.persistence.entity.Payment;
 import com.example.paymentserviceapp.persistency.PaymentFilter;
 import com.example.paymentserviceapp.persistency.PaymentFilterFactory;
 import com.example.paymentserviceapp.persistency.PaymentRepository;
 import com.example.paymentserviceapp.service.PaymentService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,9 +34,12 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public PaymentDto getPaymentById(UUID guid) {
-        Payment payment = paymentRepository.getById(guid);
-        return paymentMapper.toPaymentDto(payment);
+    public PaymentDto getPaymentById(UUID id) {
+        return paymentRepository.findById(id)
+                .map(paymentMapper::toPaymentDto)
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Платеж не найден", "find-by-id-op", id)
+                );
     }
 
     @Override
@@ -41,5 +47,34 @@ public class PaymentServiceImpl implements PaymentService {
         Specification<Payment> spec = PaymentFilterFactory.fromFilter(paymentFilter);
         return paymentRepository.findAll(spec, pageable).
                 map(paymentMapper::toPaymentDto);
+    }
+
+    @Override
+    public PaymentDto createPayment(PaymentDto paymentDto) {
+        Payment payment =  paymentMapper.toPaymentEntity(paymentDto);
+        Payment savedPayment = paymentRepository.save(payment);
+        return paymentMapper.toPaymentDto(savedPayment);
+    }
+
+    @Override
+    @Transactional
+    public PaymentDto updatePayment(UUID id, PaymentDto dto) {
+        Payment payment = paymentRepository.findByGuidForUpdate(id)
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Платеж не найден", "update-op", id));
+        paymentMapper.updatePaymentFromDto(dto, payment);
+        Payment saved = paymentRepository.save(payment);
+
+        return paymentMapper.toPaymentDto(saved);
+    }
+
+
+    @Override
+    @Transactional
+    public void delete(UUID id) {
+        if (!paymentRepository.existsById(id)) {
+            throw new EntityNotFoundException("Платеж не найден", "delete-op", id);
+        }
+        paymentRepository.deleteById(id);
     }
 }

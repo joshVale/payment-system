@@ -16,4 +16,10 @@ public interface PaymentService {
 
     Page<PaymentDto> searchPaged(PaymentFilter paymentFilter, Pageable pageable);
 
+    PaymentDto createPayment(PaymentDto paymentDto);
+
+    PaymentDto updatePayment(UUID guid, PaymentDto paymentDto);
+
+    void delete(UUID guid);
+
 }
