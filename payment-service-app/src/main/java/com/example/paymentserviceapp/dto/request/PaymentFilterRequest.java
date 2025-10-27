@@ -6,10 +6,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 public record PaymentFilterRequest(
-        String currency,
-        BigDecimal minAmount,
-        BigDecimal maxAmount,
-        Instant createdAfter,
-        Instant createdBefore,
-        PaymentStatus status
-) {}
+    String currency,
+    BigDecimal minAmount,
+    BigDecimal maxAmount,
+    Instant createdAfter,
+    Instant createdBefore,
+    PaymentStatus status
+) { }

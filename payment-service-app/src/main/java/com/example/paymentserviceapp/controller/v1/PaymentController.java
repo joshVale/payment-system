@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -46,6 +47,7 @@ public class PaymentController {
     private static final String DEFAULT_PAGE_SIZE = "20";
 
     @PostMapping
+    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<PaymentResponse> create(@RequestBody PaymentRequest request) {
         PaymentDto dto = paymentApiMapper.toDto(request);
         PaymentDto created = paymentService.createPayment(dto);
@@ -54,12 +56,14 @@ public class PaymentController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('user','admin')")
     public List<PaymentResponse> getPayments() {
         List<PaymentDto> dtos = paymentService.getAllPayments();
         return paymentApiMapper.toResponseList(dtos);
     }
 
     @PutMapping("/{guid}")
+    @PreAuthorize("hasAnyRole('user', 'admin')")
     public ResponseEntity<PaymentResponse> update(@PathVariable UUID guid, @RequestBody PaymentRequest request) {
         PaymentDto dto = paymentApiMapper.toDto(request);
         PaymentDto updated = paymentService.updatePayment(guid, dto);
@@ -68,6 +72,7 @@ public class PaymentController {
     }
 
     @DeleteMapping("/{guid}")
+    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<Void> delete(@PathVariable UUID guid) {
         try {
             paymentService.delete(guid);
@@ -79,18 +84,20 @@ public class PaymentController {
 
 
     @GetMapping("/{guid}")
+    @PreAuthorize("hasAnyRole('user', 'admin')")
     public ResponseEntity<PaymentResponse> getPayment(@PathVariable UUID guid) {
         PaymentDto paymentDto = paymentService.getPaymentById(guid);
         return ResponseEntity.ok(paymentApiMapper.toResponse(paymentDto));
     }
 
     @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('user', 'admin')")
     public Page<PaymentResponse> searchPayments(
-            @ModelAttribute PaymentFilterRequest filterRequest,
-            @RequestParam(defaultValue = DEFAULT_PAGE) int page,
-            @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size,
-            @RequestParam(defaultValue = DEFAULT_SORT_FIELD) String sortBy,
-            @RequestParam(defaultValue = DEFAULT_SORT_DIRECTION) String direction
+        @ModelAttribute PaymentFilterRequest filterRequest,
+        @RequestParam(defaultValue = DEFAULT_PAGE) int page,
+        @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size,
+        @RequestParam(defaultValue = DEFAULT_SORT_FIELD) String sortBy,
+        @RequestParam(defaultValue = DEFAULT_SORT_DIRECTION) String direction
     ) {
         Sort sort = direction.equalsIgnoreCase(SORT_DIRECTION_DESC)
                 ? Sort.by(sortBy).descending()

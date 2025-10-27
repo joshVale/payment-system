@@ -1,7 +1,27 @@
-version: '3.8'
+#version: '3.8'
 
 services:
-  # Spring Boot приложение
+  #Keycloak
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.3
+    container_name: keycloak
+    command:
+      - start-dev
+      - --http-port=8080
+      - --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME_URL: "http://keycloak:8080"
+    ports:
+      - "8085:8080"
+    volumes:
+      - ./realm-export.json:/opt/keycloak/data/import/realm-export.json
+    networks:
+      - backend
+    restart: unless-stopped
+
+  #  Spring Boot приложение
   payment-service-app:
     image: payment-service-app
     container_name: payment-service-app
@@ -9,14 +29,15 @@ services:
       - "8080:8080"
     depends_on:
       - postgres
+      - keycloak
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payment-db
-      SPRING_DATASOURCE_USERNAME: admin
-      SPRING_DATASOURCE_PASSWORD: secret
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://keycloak:8080/realms/iprody-lms"
+
+    networks:
+      - backend
     restart: unless-stopped
 
-  # PostgreSQL
+  #  PostgreSQL
   postgres:
     image: postgres:16
     container_name: postgres-db
@@ -29,9 +50,11 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend
     restart: unless-stopped
 
-  # PgAdmin
+  #  PgAdmin
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pgadmin
@@ -42,8 +65,15 @@ services:
       - "8081:80"
     depends_on:
       - postgres
+    networks:
+      - backend
     restart: unless-stopped
 
 # Volume для хранения данных PostgreSQL
 volumes:
   pgdata:
+
+# Общая сеть для контейнеров
+networks:
+  backend:
+    driver: bridge

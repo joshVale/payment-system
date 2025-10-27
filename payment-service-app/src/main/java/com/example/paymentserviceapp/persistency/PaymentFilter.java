@@ -7,10 +7,10 @@ import java.time.Instant;
 
 
 public record PaymentFilter(
-        String currency,
-        BigDecimal minAmount,
-        BigDecimal maxAmount,
-        Instant createdAfter,
-        Instant createdBefore,
-        PaymentStatus status
-) {}
+    String currency,
+    BigDecimal minAmount,
+    BigDecimal maxAmount,
+    Instant createdAfter,
+    Instant createdBefore,
+    PaymentStatus status
+) { }

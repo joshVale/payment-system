@@ -21,10 +21,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorDto> handleOtherExceptions(Exception ex) {
-        ErrorDto errorDto = new ErrorDto(
-                null,
-                "unknown-op",
-                ex.getMessage()
+        final ErrorDto errorDto = new ErrorDto(
+            null,
+            "unknown-op",
+            ex.getMessage()
         );
         return ResponseEntity.internalServerError().body(errorDto);
     }
