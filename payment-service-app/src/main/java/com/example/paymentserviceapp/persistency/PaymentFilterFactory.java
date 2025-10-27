@@ -24,8 +24,8 @@ public final class PaymentFilterFactory {
         }
 
         if (filter.createdAfter() != null || filter.createdBefore() != null) {
-            OffsetDateTime after = DateTimeUtils.toOffsetDateTimeOrMin(filter.createdAfter());
-            OffsetDateTime before = DateTimeUtils.toOffsetDateTimeOrMax(filter.createdBefore());
+            final OffsetDateTime after = DateTimeUtils.toOffsetDateTimeOrMin(filter.createdAfter());
+            final OffsetDateTime before = DateTimeUtils.toOffsetDateTimeOrMax(filter.createdBefore());
             spec = spec.and(PaymentSpecifications.createdBetween(after, before));
         }
 

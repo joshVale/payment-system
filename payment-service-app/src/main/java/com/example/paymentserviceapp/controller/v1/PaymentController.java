@@ -49,25 +49,25 @@ public class PaymentController {
     @PostMapping
     @PreAuthorize("hasRole('admin')")
     public ResponseEntity<PaymentResponse> create(@RequestBody PaymentRequest request) {
-        PaymentDto dto = paymentApiMapper.toDto(request);
-        PaymentDto created = paymentService.createPayment(dto);
-        PaymentResponse response = paymentApiMapper.toResponse(created);
+        final PaymentDto dto = paymentApiMapper.toDto(request);
+        final PaymentDto created = paymentService.createPayment(dto);
+        final PaymentResponse response = paymentApiMapper.toResponse(created);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('user','admin')")
     public List<PaymentResponse> getPayments() {
-        List<PaymentDto> dtos = paymentService.getAllPayments();
+        final List<PaymentDto> dtos = paymentService.getAllPayments();
         return paymentApiMapper.toResponseList(dtos);
     }
 
     @PutMapping("/{guid}")
     @PreAuthorize("hasAnyRole('user', 'admin')")
     public ResponseEntity<PaymentResponse> update(@PathVariable UUID guid, @RequestBody PaymentRequest request) {
-        PaymentDto dto = paymentApiMapper.toDto(request);
-        PaymentDto updated = paymentService.updatePayment(guid, dto);
-        PaymentResponse response = paymentApiMapper.toResponse(updated);
+        final PaymentDto dto = paymentApiMapper.toDto(request);
+        final PaymentDto updated = paymentService.updatePayment(guid, dto);
+        final PaymentResponse response = paymentApiMapper.toResponse(updated);
         return ResponseEntity.ok(response);
     }
 
@@ -86,7 +86,7 @@ public class PaymentController {
     @GetMapping("/{guid}")
     @PreAuthorize("hasAnyRole('user', 'admin')")
     public ResponseEntity<PaymentResponse> getPayment(@PathVariable UUID guid) {
-        PaymentDto paymentDto = paymentService.getPaymentById(guid);
+        final PaymentDto paymentDto = paymentService.getPaymentById(guid);
         return ResponseEntity.ok(paymentApiMapper.toResponse(paymentDto));
     }
 
@@ -99,12 +99,12 @@ public class PaymentController {
         @RequestParam(defaultValue = DEFAULT_SORT_FIELD) String sortBy,
         @RequestParam(defaultValue = DEFAULT_SORT_DIRECTION) String direction
     ) {
-        Sort sort = direction.equalsIgnoreCase(SORT_DIRECTION_DESC)
-                ? Sort.by(sortBy).descending()
-                : Sort.by(sortBy).ascending();
+        final Sort sort = direction.equalsIgnoreCase(SORT_DIRECTION_DESC)
+            ? Sort.by(sortBy).descending()
+            : Sort.by(sortBy).ascending();
 
-        Pageable pageable = PageRequest.of(page, size, sort);
-        PaymentFilter serviceFilter = paymentFilterMapper.toServiceFilter(filterRequest);
+        final Pageable pageable = PageRequest.of(page, size, sort);
+        final PaymentFilter serviceFilter = paymentFilterMapper.toServiceFilter(filterRequest);
         return paymentService.searchPaged(serviceFilter, pageable)
                 .map(paymentApiMapper::toResponse);
     }

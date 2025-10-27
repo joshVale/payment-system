@@ -44,26 +44,25 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public Page<PaymentDto> searchPaged(PaymentFilter paymentFilter, Pageable pageable) {
-        Specification<Payment> spec = PaymentFilterFactory.fromFilter(paymentFilter);
-        return paymentRepository.findAll(spec, pageable).
-                map(paymentMapper::toPaymentDto);
+        final Specification<Payment> spec = PaymentFilterFactory.fromFilter(paymentFilter);
+        return paymentRepository.findAll(spec, pageable)
+            .map(paymentMapper::toPaymentDto);
     }
 
     @Override
     public PaymentDto createPayment(PaymentDto paymentDto) {
-        Payment payment =  paymentMapper.toPaymentEntity(paymentDto);
-        Payment savedPayment = paymentRepository.save(payment);
+        final Payment payment = paymentMapper.toPaymentEntity(paymentDto);
+        final Payment savedPayment = paymentRepository.save(payment);
         return paymentMapper.toPaymentDto(savedPayment);
     }
 
     @Override
     @Transactional
     public PaymentDto updatePayment(UUID id, PaymentDto dto) {
-        Payment payment = paymentRepository.findByGuidForUpdate(id)
-                .orElseThrow(() ->
-                        new EntityNotFoundException("Платеж не найден", "update-op", id));
+        final Payment payment = paymentRepository.findByGuidForUpdate(id)
+            .orElseThrow(() -> new EntityNotFoundException("Платеж не найден", "update-op", id));
         paymentMapper.updatePaymentFromDto(dto, payment);
-        Payment saved = paymentRepository.save(payment);
+        final Payment saved = paymentRepository.save(payment);
 
         return paymentMapper.toPaymentDto(saved);
     }
