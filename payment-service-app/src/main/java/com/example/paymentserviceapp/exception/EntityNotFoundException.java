@@ -1,7 +1,6 @@
 package com.example.paymentserviceapp.exception;
 
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
 
 import java.util.UUID;
 

@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -46,28 +47,32 @@ public class PaymentController {
     private static final String DEFAULT_PAGE_SIZE = "20";
 
     @PostMapping
+    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<PaymentResponse> create(@RequestBody PaymentRequest request) {
-        PaymentDto dto = paymentApiMapper.toDto(request);
-        PaymentDto created = paymentService.createPayment(dto);
-        PaymentResponse response = paymentApiMapper.toResponse(created);
+        final PaymentDto dto = paymentApiMapper.toDto(request);
+        final PaymentDto created = paymentService.createPayment(dto);
+        final PaymentResponse response = paymentApiMapper.toResponse(created);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('user','admin')")
     public List<PaymentResponse> getPayments() {
-        List<PaymentDto> dtos = paymentService.getAllPayments();
+        final List<PaymentDto> dtos = paymentService.getAllPayments();
         return paymentApiMapper.toResponseList(dtos);
     }
 
     @PutMapping("/{guid}")
+    @PreAuthorize("hasAnyRole('user', 'admin')")
     public ResponseEntity<PaymentResponse> update(@PathVariable UUID guid, @RequestBody PaymentRequest request) {
-        PaymentDto dto = paymentApiMapper.toDto(request);
-        PaymentDto updated = paymentService.updatePayment(guid, dto);
-        PaymentResponse response = paymentApiMapper.toResponse(updated);
+        final PaymentDto dto = paymentApiMapper.toDto(request);
+        final PaymentDto updated = paymentService.updatePayment(guid, dto);
+        final PaymentResponse response = paymentApiMapper.toResponse(updated);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{guid}")
+    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<Void> delete(@PathVariable UUID guid) {
         try {
             paymentService.delete(guid);
@@ -79,25 +84,27 @@ public class PaymentController {
 
 
     @GetMapping("/{guid}")
+    @PreAuthorize("hasAnyRole('user', 'admin')")
     public ResponseEntity<PaymentResponse> getPayment(@PathVariable UUID guid) {
-        PaymentDto paymentDto = paymentService.getPaymentById(guid);
+        final PaymentDto paymentDto = paymentService.getPaymentById(guid);
         return ResponseEntity.ok(paymentApiMapper.toResponse(paymentDto));
     }
 
     @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('user', 'admin')")
     public Page<PaymentResponse> searchPayments(
-            @ModelAttribute PaymentFilterRequest filterRequest,
-            @RequestParam(defaultValue = DEFAULT_PAGE) int page,
-            @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size,
-            @RequestParam(defaultValue = DEFAULT_SORT_FIELD) String sortBy,
-            @RequestParam(defaultValue = DEFAULT_SORT_DIRECTION) String direction
+        @ModelAttribute PaymentFilterRequest filterRequest,
+        @RequestParam(defaultValue = DEFAULT_PAGE) int page,
+        @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size,
+        @RequestParam(defaultValue = DEFAULT_SORT_FIELD) String sortBy,
+        @RequestParam(defaultValue = DEFAULT_SORT_DIRECTION) String direction
     ) {
-        Sort sort = direction.equalsIgnoreCase(SORT_DIRECTION_DESC)
-                ? Sort.by(sortBy).descending()
-                : Sort.by(sortBy).ascending();
+        final Sort sort = direction.equalsIgnoreCase(SORT_DIRECTION_DESC)
+            ? Sort.by(sortBy).descending()
+            : Sort.by(sortBy).ascending();
 
-        Pageable pageable = PageRequest.of(page, size, sort);
-        PaymentFilter serviceFilter = paymentFilterMapper.toServiceFilter(filterRequest);
+        final Pageable pageable = PageRequest.of(page, size, sort);
+        final PaymentFilter serviceFilter = paymentFilterMapper.toServiceFilter(filterRequest);
         return paymentService.searchPaged(serviceFilter, pageable)
                 .map(paymentApiMapper::toResponse);
     }

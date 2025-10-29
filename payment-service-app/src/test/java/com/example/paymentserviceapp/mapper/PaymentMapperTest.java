@@ -6,13 +6,14 @@ import com.example.paymentserviceapp.persistence.entity.Payment;
 
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
+import org.springframework.test.context.ActiveProfiles;
 
 import static com.example.paymentserviceapp.mapper.TestObjects.createPaymentDto;
 import static com.example.paymentserviceapp.mapper.TestObjects.createPaymentEntity;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-
+@ActiveProfiles("test")
 class PaymentMapperTest {
 
     private final PaymentMapper paymentMapper = Mappers.getMapper(PaymentMapper.class);
