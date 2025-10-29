@@ -28,6 +28,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -48,7 +50,7 @@ public class PaymentController {
 
     @PostMapping
     @PreAuthorize("hasRole('admin')")
-    public ResponseEntity<PaymentResponse> create(@RequestBody PaymentRequest request) {
+    public ResponseEntity<PaymentResponse> create(@Valid @RequestBody PaymentRequest request) {
         final PaymentDto dto = paymentApiMapper.toDto(request);
         final PaymentDto created = paymentService.createPayment(dto);
         final PaymentResponse response = paymentApiMapper.toResponse(created);
@@ -64,7 +66,7 @@ public class PaymentController {
 
     @PutMapping("/{guid}")
     @PreAuthorize("hasAnyRole('user', 'admin')")
-    public ResponseEntity<PaymentResponse> update(@PathVariable UUID guid, @RequestBody PaymentRequest request) {
+    public ResponseEntity<PaymentResponse> update(@PathVariable UUID guid, @Valid @RequestBody PaymentRequest request) {
         final PaymentDto dto = paymentApiMapper.toDto(request);
         final PaymentDto updated = paymentService.updatePayment(guid, dto);
         final PaymentResponse response = paymentApiMapper.toResponse(updated);
