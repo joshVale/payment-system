@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1.2-add-default-timestamps
+      author: josh
+      comment: "Add default values for created_at and updated_at"
+      changes:
+        - sql:
+            sql: >
+              ALTER TABLE payments
+              ALTER COLUMN created_at SET DEFAULT CURRENT_TIMESTAMP,
+              ALTER COLUMN updated_at SET DEFAULT CURRENT_TIMESTAMP
+      rollback:
+        - sql:
+            sql: >
+              ALTER TABLE payments
+              ALTER COLUMN created_at DROP DEFAULT,
+              ALTER COLUMN updated_at DROP DEFAULT
