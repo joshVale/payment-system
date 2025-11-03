@@ -23,7 +23,7 @@ public class SecurityConfig {
                         sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth ->
-                        auth.requestMatchers("/api/v1/payments/**").hasRole("user")
+                        auth.requestMatchers("/api/v1/payments/**").hasAnyRole("user", "admin")
                                 .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->

@@ -2,7 +2,6 @@ package com.example.paymentserviceapp.persistence.entity;
 
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
@@ -64,9 +63,5 @@ public class Payment {
     @Column(name = "updated_at", nullable = false, insertable = false)
     private OffsetDateTime updatedAt;
 
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = OffsetDateTime.now();
-    }
 }
 
