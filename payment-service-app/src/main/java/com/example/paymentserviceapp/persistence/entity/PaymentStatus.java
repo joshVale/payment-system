@@ -4,7 +4,10 @@ public enum PaymentStatus {
     CREATED,
     RECEIVED,
     PENDING,
+    PROCESSING,
     DECLINED,
     APPROVED,
+    CANCELED,
+    SUCCEEDED,
     NOT_SENT
 }
