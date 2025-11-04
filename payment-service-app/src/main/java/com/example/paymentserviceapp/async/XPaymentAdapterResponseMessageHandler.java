@@ -4,6 +4,7 @@ import com.example.paymentserviceapp.persistence.entity.PaymentStatus;
 import com.example.paymentserviceapp.service.PaymentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -13,6 +14,7 @@ public class XPaymentAdapterResponseMessageHandler implements MessageHandler<XPa
     private PaymentService paymentService;
 
     @Autowired
+    @Lazy
     public void setPaymentService(PaymentService paymentService) {
         this.paymentService = paymentService;
     }

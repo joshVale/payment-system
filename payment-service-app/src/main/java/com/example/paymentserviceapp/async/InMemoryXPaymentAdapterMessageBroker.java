@@ -1,5 +1,6 @@
 package com.example.paymentserviceapp.async;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class InMemoryXPaymentAdapterMessageBroker implements AsyncSender<XPaymentAdapterRequestMessage> {
 
+    @Lazy
     private final AsyncListener<XPaymentAdapterResponseMessage> resultListener;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 

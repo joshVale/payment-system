@@ -1,6 +1,7 @@
 package com.example.paymentserviceapp.async;
 
 import com.example.paymentserviceapp.exception.AsyncMessageProcessingException;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 public class InMemoryXPaymentAdapterResultListenerAdapter
         implements AsyncListener<XPaymentAdapterResponseMessage> {
 
+    @Lazy
     private final MessageHandler<XPaymentAdapterResponseMessage> handler;
 
     @Override

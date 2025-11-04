@@ -10,6 +10,8 @@ import com.example.paymentserviceapp.mapper.PaymentFilterMapper;
 import com.example.paymentserviceapp.persistency.PaymentFilter;
 import com.example.paymentserviceapp.service.PaymentService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +40,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PaymentController {
 
+    private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
     private final PaymentService paymentService;
     private final PaymentApiMapper paymentApiMapper;
     private final PaymentFilterMapper paymentFilterMapper;
@@ -51,35 +54,47 @@ public class PaymentController {
     @PostMapping
     @PreAuthorize("hasRole('admin')")
     public ResponseEntity<PaymentResponse> create(@Valid @RequestBody PaymentRequest request) {
+        log.info("Creating payment with inquiryRefId: {}", request.inquiryRefId());
         final PaymentDto dto = paymentApiMapper.toDto(request);
         final PaymentDto created = paymentService.createPayment(dto);
         final PaymentResponse response = paymentApiMapper.toResponse(created);
+        log.debug("Payment created successfully. Operation: createPayment, Payment state: {}", response);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('user','admin')")
     public List<PaymentResponse> getPayments() {
+        log.info("Getting all payments. Operation: getAllPayments");
         final List<PaymentDto> dtos = paymentService.getAllPayments();
-        return paymentApiMapper.toResponseList(dtos);
+        final List<PaymentResponse> response = paymentApiMapper.toResponseList(dtos);
+        log.debug("All payments retrieved successfully. Operation: getAllPayments, Payment count: {}, Payments state: {}", 
+                response.size(), response);
+        return response;
     }
 
     @PutMapping("/{guid}")
     @PreAuthorize("hasAnyRole('user', 'admin')")
     public ResponseEntity<PaymentResponse> update(@PathVariable UUID guid, @Valid @RequestBody PaymentRequest request) {
+        log.info("Updating payment. Operation: updatePayment, Payment guid: {}", guid);
         final PaymentDto dto = paymentApiMapper.toDto(request);
         final PaymentDto updated = paymentService.updatePayment(guid, dto);
         final PaymentResponse response = paymentApiMapper.toResponse(updated);
+        log.debug("Payment updated successfully. Operation: updatePayment, Payment guid: {}, Payment state: {}", 
+                guid, response);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{guid}")
     @PreAuthorize("hasRole('admin')")
     public ResponseEntity<Void> delete(@PathVariable UUID guid) {
+        log.info("Deleting payment. Operation: deletePayment, Payment guid: {}", guid);
         try {
             paymentService.delete(guid);
+            log.debug("Payment deleted successfully. Operation: deletePayment, Payment guid: {}", guid);
             return ResponseEntity.ok().build();
         } catch (EntityNotFoundException e) {
+            log.debug("Payment not found for deletion. Operation: deletePayment, Payment guid: {}", guid);
             return ResponseEntity.noContent().build();
         }
     }
@@ -88,8 +103,12 @@ public class PaymentController {
     @GetMapping("/{guid}")
     @PreAuthorize("hasAnyRole('user', 'admin')")
     public ResponseEntity<PaymentResponse> getPayment(@PathVariable UUID guid) {
+        log.info("Getting payment by id. Operation: getPaymentById, Payment guid: {}", guid);
         final PaymentDto paymentDto = paymentService.getPaymentById(guid);
-        return ResponseEntity.ok(paymentApiMapper.toResponse(paymentDto));
+        final PaymentResponse response = paymentApiMapper.toResponse(paymentDto);
+        log.debug("Payment retrieved successfully. Operation: getPaymentById, Payment guid: {}, Payment state: {}", 
+                guid, response);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/search")
@@ -101,13 +120,19 @@ public class PaymentController {
         @RequestParam(defaultValue = DEFAULT_SORT_FIELD) String sortBy,
         @RequestParam(defaultValue = DEFAULT_SORT_DIRECTION) String direction
     ) {
+        log.info("Searching payments. Operation: searchPayments, Page: {}, Size: {}, SortBy: {}, Direction: {}", 
+                page, size, sortBy, direction);
         final Sort sort = direction.equalsIgnoreCase(SORT_DIRECTION_DESC)
             ? Sort.by(sortBy).descending()
             : Sort.by(sortBy).ascending();
 
         final Pageable pageable = PageRequest.of(page, size, sort);
         final PaymentFilter serviceFilter = paymentFilterMapper.toServiceFilter(filterRequest);
-        return paymentService.searchPaged(serviceFilter, pageable)
+        final Page<PaymentResponse> response = paymentService.searchPaged(serviceFilter, pageable)
                 .map(paymentApiMapper::toResponse);
+        log.debug("Payments search completed successfully. Operation: searchPayments, Total elements: {}, " +
+                "Total pages: {}, Payments state: {}", response.getTotalElements(), response.getTotalPages(), 
+                response.getContent());
+        return response;
     }
 }
