@@ -1,6 +1,7 @@
 package com.example.paymentserviceapp.service;
 
 import com.example.paymentserviceapp.dto.PaymentDto;
+import com.example.paymentserviceapp.persistence.entity.PaymentStatus;
 import com.example.paymentserviceapp.persistency.PaymentFilter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,5 +22,7 @@ public interface PaymentService {
     PaymentDto updatePayment(UUID guid, PaymentDto paymentDto);
 
     void delete(UUID guid);
+
+    void updatePaymentStatus(UUID paymentGuid, UUID transactionRefId, PaymentStatus status);
 
 }

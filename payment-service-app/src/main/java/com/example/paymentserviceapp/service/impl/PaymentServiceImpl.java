@@ -1,15 +1,21 @@
 package com.example.paymentserviceapp.service.impl;
 
+import com.example.paymentserviceapp.async.AsyncSender;
+import com.example.paymentserviceapp.async.XPaymentAdapterRequestMessage;
 import com.example.paymentserviceapp.dto.PaymentDto;
 import com.example.paymentserviceapp.exception.EntityNotFoundException;
 import com.example.paymentserviceapp.mapper.PaymentMapper;
+import com.example.paymentserviceapp.mapper.XPaymentAdapterMapper;
 import com.example.paymentserviceapp.persistence.entity.Payment;
+import com.example.paymentserviceapp.persistence.entity.PaymentStatus;
 import com.example.paymentserviceapp.persistency.PaymentFilter;
 import com.example.paymentserviceapp.persistency.PaymentFilterFactory;
 import com.example.paymentserviceapp.persistency.PaymentRepository;
 import com.example.paymentserviceapp.service.PaymentService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -21,10 +27,14 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
+    private final XPaymentAdapterMapper xPaymentAdapterMapper;
+    @Lazy
+    private final AsyncSender<XPaymentAdapterRequestMessage> asyncSender;
 
     @Override
     public List<PaymentDto> getAllPayments() {
@@ -51,8 +61,18 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentDto createPayment(PaymentDto paymentDto) {
+
         final Payment payment = paymentMapper.toPaymentEntity(paymentDto);
         final Payment savedPayment = paymentRepository.save(payment);
+
+        log.info("Payment created with PROCESSING status: guid={}, amount={}, currency={}",
+                savedPayment.getGuid(), savedPayment.getAmount(), savedPayment.getCurrency());
+
+        // Отправляем сообщение в адаптер для асинхронной обработки
+        final XPaymentAdapterRequestMessage requestMessage =
+                xPaymentAdapterMapper.toXPaymentAdapterRequestMessage(savedPayment);
+        asyncSender.send(requestMessage);
+
         return paymentMapper.toPaymentDto(savedPayment);
     }
 
@@ -75,5 +95,26 @@ public class PaymentServiceImpl implements PaymentService {
             throw new EntityNotFoundException("Платеж не найден", "delete-op", id);
         }
         paymentRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public void updatePaymentStatus(UUID paymentGuid, UUID transactionRefId, PaymentStatus status) {
+        Payment payment = paymentRepository.findById(paymentGuid)
+                .orElseThrow(() -> {
+                    log.error("Payment not found: {}", paymentGuid);
+                    return new EntityNotFoundException("Payment not found", "update-status-op", paymentGuid);
+                });
+
+        log.debug("Current payment state: guid={}, status={}, transactionRefId={}",
+                payment.getGuid(), payment.getStatus(), payment.getTransactionRefId());
+
+        payment.setTransactionRefId(transactionRefId);
+        payment.setStatus(status);
+
+        Payment updated = paymentRepository.save(payment);
+
+        log.info("Payment updated successfully: guid={}, newStatus={}, transactionRefId={}",
+                updated.getGuid(), updated.getStatus(), updated.getTransactionRefId());
     }
 }

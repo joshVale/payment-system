@@ -13,6 +13,7 @@ public interface PaymentMapper {
 
     PaymentDto toPaymentDto(Payment payment);
 
+    @Mapping(target = "status", ignore = true)
     Payment toPaymentEntity(PaymentDto paymentDto);
 
     @Mapping(target = "guid", ignore = true)

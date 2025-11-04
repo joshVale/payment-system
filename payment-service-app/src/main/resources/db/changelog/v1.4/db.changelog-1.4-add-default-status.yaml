@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1.4-add-default-status
+      author: josh
+      comment: "Add default value PROCESSING for status column"
+      changes:
+        - sql:
+            sql: >
+              ALTER TABLE payments
+              ALTER COLUMN status SET DEFAULT 'PROCESSING'
+      rollback:
+        - sql:
+            sql: >
+              ALTER TABLE payments
+              ALTER COLUMN status DROP DEFAULT
+

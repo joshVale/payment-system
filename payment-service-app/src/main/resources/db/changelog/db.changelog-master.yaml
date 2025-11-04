@@ -51,3 +51,14 @@ databaseChangeLog:
       changes:
         - tagDatabase:
             tag: v1.3
+
+  - include:
+      file: v1.4/db.changelog-1.4-add-default-status.yaml
+      relativeToChangelogFile: true
+
+  - changeSet:
+      id: tag-1.4
+      author: josh
+      changes:
+        - tagDatabase:
+            tag: v1.4

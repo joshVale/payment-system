@@ -51,7 +51,7 @@ public class Payment {
     private UUID transactionRefId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, insertable = false)
     private PaymentStatus status;
 
     @Column(name = "note", columnDefinition = "text")
