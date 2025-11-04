@@ -5,7 +5,7 @@ import java.util.UUID;
 
 public interface Message {
 
-    UUID getMessageId();
+    UUID messageId();
 
-    OffsetDateTime getOccurredAt();
+    OffsetDateTime occurredAt();
 }

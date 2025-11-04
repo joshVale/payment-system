@@ -15,6 +15,7 @@ import com.example.paymentserviceapp.service.PaymentService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -32,6 +33,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
     private final XPaymentAdapterMapper xPaymentAdapterMapper;
+    @Lazy
     private final AsyncSender<XPaymentAdapterRequestMessage> asyncSender;
 
     @Override
@@ -61,7 +63,6 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentDto createPayment(PaymentDto paymentDto) {
 
         final Payment payment = paymentMapper.toPaymentEntity(paymentDto);
-        payment.setStatus(PaymentStatus.PROCESSING);
         final Payment savedPayment = paymentRepository.save(payment);
 
         log.info("Payment created with PROCESSING status: guid={}, amount={}, currency={}",
@@ -71,9 +72,6 @@ public class PaymentServiceImpl implements PaymentService {
         final XPaymentAdapterRequestMessage requestMessage =
                 xPaymentAdapterMapper.toXPaymentAdapterRequestMessage(savedPayment);
         asyncSender.send(requestMessage);
-
-        log.debug("Payment request sent to adapter: paymentGuid={}, messageId={}",
-                savedPayment.getGuid(), requestMessage.getMessageId());
 
         return paymentMapper.toPaymentDto(savedPayment);
     }
@@ -97,5 +95,26 @@ public class PaymentServiceImpl implements PaymentService {
             throw new EntityNotFoundException("Платеж не найден", "delete-op", id);
         }
         paymentRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public void updatePaymentStatus(UUID paymentGuid, UUID transactionRefId, PaymentStatus status) {
+        Payment payment = paymentRepository.findById(paymentGuid)
+                .orElseThrow(() -> {
+                    log.error("Payment not found: {}", paymentGuid);
+                    return new EntityNotFoundException("Payment not found", "update-status-op", paymentGuid);
+                });
+
+        log.debug("Current payment state: guid={}, status={}, transactionRefId={}",
+                payment.getGuid(), payment.getStatus(), payment.getTransactionRefId());
+
+        payment.setTransactionRefId(transactionRefId);
+        payment.setStatus(status);
+
+        Payment updated = paymentRepository.save(payment);
+
+        log.info("Payment updated successfully: guid={}, newStatus={}, transactionRefId={}",
+                updated.getGuid(), updated.getStatus(), updated.getTransactionRefId());
     }
 }

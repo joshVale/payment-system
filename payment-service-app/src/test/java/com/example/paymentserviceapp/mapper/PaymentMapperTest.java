@@ -41,6 +41,7 @@ class PaymentMapperTest {
         assertEquals(dto.guid(), payment.getGuid());
         assertEquals(dto.amount(), payment.getAmount());
         assertEquals(dto.currency(), payment.getCurrency());
-        assertEquals(dto.status(), payment.getStatus());
+        // Status is ignored during mapping and will be set by database default
+        assertEquals(null, payment.getStatus());
     }
 }

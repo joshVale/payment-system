@@ -1,9 +1,12 @@
 package com.example.paymentserviceapp;
 
 
+import com.example.paymentserviceapp.async.AsyncSender;
+import com.example.paymentserviceapp.async.XPaymentAdapterRequestMessage;
 import com.example.paymentserviceapp.dto.PaymentDto;
 import com.example.paymentserviceapp.exception.EntityNotFoundException;
 import com.example.paymentserviceapp.mapper.PaymentMapper;
+import com.example.paymentserviceapp.mapper.XPaymentAdapterMapper;
 import com.example.paymentserviceapp.persistence.entity.Payment;
 import com.example.paymentserviceapp.persistence.entity.PaymentStatus;
 import com.example.paymentserviceapp.persistency.PaymentFilter;
@@ -59,6 +62,12 @@ class PaymentServiceTest {
 
     @Mock
     private PaymentMapper paymentMapper;
+
+    @Mock
+    private XPaymentAdapterMapper xPaymentAdapterMapper;
+
+    @Mock
+    private AsyncSender<XPaymentAdapterRequestMessage> asyncSender;
 
     @InjectMocks
     private PaymentServiceImpl paymentService;
@@ -505,9 +514,19 @@ class PaymentServiceTest {
     @Test
     @DisplayName("Должен создать новый платеж")
     void shouldCreatePayment() {
+        XPaymentAdapterRequestMessage requestMessage = new XPaymentAdapterRequestMessage(
+                testPayment.getGuid(),
+                testPayment.getAmount(),
+                testPayment.getCurrency(),
+                UUID.randomUUID(),
+                testPayment.getUpdatedAt()
+        );
+
         when(paymentMapper.toPaymentEntity(testPaymentDto)).thenReturn(testPayment);
         when(paymentRepository.save(any(Payment.class))).thenReturn(testPayment);
         when(paymentMapper.toPaymentDto(testPayment)).thenReturn(testPaymentDto);
+        when(xPaymentAdapterMapper.toXPaymentAdapterRequestMessage(testPayment)).thenReturn(requestMessage);
+        doNothing().when(asyncSender).send(any(XPaymentAdapterRequestMessage.class));
 
         PaymentDto result = paymentService.createPayment(testPaymentDto);
 
@@ -516,6 +535,8 @@ class PaymentServiceTest {
         verify(paymentMapper).toPaymentEntity(testPaymentDto);
         verify(paymentRepository).save(any(Payment.class));
         verify(paymentMapper).toPaymentDto(testPayment);
+        verify(xPaymentAdapterMapper).toXPaymentAdapterRequestMessage(testPayment);
+        verify(asyncSender).send(any(XPaymentAdapterRequestMessage.class));
     }
 
     @Test

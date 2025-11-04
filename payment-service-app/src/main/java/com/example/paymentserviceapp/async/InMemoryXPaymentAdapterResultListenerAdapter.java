@@ -1,5 +1,6 @@
 package com.example.paymentserviceapp.async;
 
+import com.example.paymentserviceapp.exception.AsyncMessageProcessingException;
 import org.springframework.stereotype.Component;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,16 +16,16 @@ public class InMemoryXPaymentAdapterResultListenerAdapter
     @Override
     public void onMessage(XPaymentAdapterResponseMessage msg) {
         log.info("Listener received message: messageId={}, paymentGuid={}, status={}, transactionRefId={}",
-                msg.getMessageId(), msg.getPaymentGuid(), msg.getStatus(), msg.getTransactionRefId());
+                msg.messageId(), msg.paymentGuid(), msg.status(), msg.transactionRefId());
 
         try {
             handler.handle(msg);
             log.info("Message handled successfully: messageId={}, paymentGuid={}",
-                    msg.getMessageId(), msg.getPaymentGuid());
+                    msg.messageId(), msg.paymentGuid());
         } catch (Exception e) {
             log.error("Error handling message: messageId={}, paymentGuid={}, error={}",
-                    msg.getMessageId(), msg.getPaymentGuid(), e.getMessage(), e);
-            throw e;
+                    msg.messageId(), msg.paymentGuid(), e.getMessage(), e);
+            throw new AsyncMessageProcessingException("Ошибка обработки сообщения", e);
         }
     }
 }
