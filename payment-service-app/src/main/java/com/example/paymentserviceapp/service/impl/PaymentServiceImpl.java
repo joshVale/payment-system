@@ -1,7 +1,7 @@
 package com.example.paymentserviceapp.service.impl;
 
-import com.example.paymentserviceapp.async.AsyncSender;
 import com.example.paymentserviceapp.async.XPaymentAdapterRequestMessage;
+import com.example.paymentserviceapp.async.event.PaymentRequestEvent;
 import com.example.paymentserviceapp.dto.PaymentDto;
 import com.example.paymentserviceapp.exception.EntityNotFoundException;
 import com.example.paymentserviceapp.mapper.PaymentMapper;
@@ -15,7 +15,7 @@ import com.example.paymentserviceapp.service.PaymentService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -33,8 +33,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
     private final XPaymentAdapterMapper xPaymentAdapterMapper;
-    @Lazy
-    private final AsyncSender<XPaymentAdapterRequestMessage> asyncSender;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public List<PaymentDto> getAllPayments() {
@@ -66,12 +65,14 @@ public class PaymentServiceImpl implements PaymentService {
         final Payment savedPayment = paymentRepository.save(payment);
 
         log.info("Payment created with PROCESSING status: guid={}, amount={}, currency={}",
-                savedPayment.getGuid(), savedPayment.getAmount(), savedPayment.getCurrency());
+            savedPayment.getGuid(), savedPayment.getAmount(), savedPayment.getCurrency());
 
-        // Отправляем сообщение в адаптер для асинхронной обработки
+        // Отправляем событие для асинхронной обработки через X Payment Adapter
         final XPaymentAdapterRequestMessage requestMessage =
-                xPaymentAdapterMapper.toXPaymentAdapterRequestMessage(savedPayment);
-        asyncSender.send(requestMessage);
+            xPaymentAdapterMapper.toXPaymentAdapterRequestMessage(savedPayment);
+        eventPublisher.publishEvent(new PaymentRequestEvent(this, requestMessage));
+        log.debug("Payment request event published: messageId={}, paymentGuid={}",
+            requestMessage.messageId(), requestMessage.paymentGuid());
 
         return paymentMapper.toPaymentDto(savedPayment);
     }
