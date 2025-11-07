@@ -1,7 +1,7 @@
 package com.example.paymentserviceapp.async;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 public record XPaymentAdapterResponseMessage(
@@ -11,6 +11,6 @@ public record XPaymentAdapterResponseMessage(
         String currency,
         UUID transactionRefId,
         XPaymentAdapterStatus status,
-        OffsetDateTime occurredAt
+        Instant occurredAt
 ) implements Message {
 }

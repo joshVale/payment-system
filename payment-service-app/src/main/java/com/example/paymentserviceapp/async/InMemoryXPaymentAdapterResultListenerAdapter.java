@@ -1,6 +1,8 @@
 package com.example.paymentserviceapp.async;
 
+import com.example.paymentserviceapp.async.event.PaymentResponseEvent;
 import com.example.paymentserviceapp.exception.AsyncMessageProcessingException;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,22 +11,28 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class InMemoryXPaymentAdapterResultListenerAdapter
-        implements AsyncListener<XPaymentAdapterResponseMessage> {
+    implements AsyncListener<XPaymentAdapterResponseMessage> {
 
     private final MessageHandler<XPaymentAdapterResponseMessage> handler;
+
+    @EventListener
+    public void handlePaymentResponseEvent(PaymentResponseEvent event) {
+        final XPaymentAdapterResponseMessage msg = event.getResponseMessage();
+        onMessage(msg);
+    }
 
     @Override
     public void onMessage(XPaymentAdapterResponseMessage msg) {
         log.info("Listener received message: messageId={}, paymentGuid={}, status={}, transactionRefId={}",
-                msg.messageId(), msg.paymentGuid(), msg.status(), msg.transactionRefId());
+            msg.messageId(), msg.paymentGuid(), msg.status(), msg.transactionRefId());
 
         try {
             handler.handle(msg);
             log.info("Message handled successfully: messageId={}, paymentGuid={}",
-                    msg.messageId(), msg.paymentGuid());
+                msg.messageId(), msg.paymentGuid());
         } catch (Exception e) {
             log.error("Error handling message: messageId={}, paymentGuid={}, error={}",
-                    msg.messageId(), msg.paymentGuid(), e.getMessage(), e);
+                msg.messageId(), msg.paymentGuid(), e.getMessage(), e);
             throw new AsyncMessageProcessingException("Ошибка обработки сообщения", e);
         }
     }

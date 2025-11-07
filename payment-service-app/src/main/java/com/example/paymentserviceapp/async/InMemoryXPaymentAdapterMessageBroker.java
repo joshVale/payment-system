@@ -1,12 +1,16 @@
 package com.example.paymentserviceapp.async;
 
+import com.example.paymentserviceapp.async.event.PaymentRequestEvent;
+import com.example.paymentserviceapp.async.event.PaymentResponseEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -17,19 +21,25 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class InMemoryXPaymentAdapterMessageBroker implements AsyncSender<XPaymentAdapterRequestMessage> {
 
-    private final AsyncListener<XPaymentAdapterResponseMessage> resultListener;
+    private final ApplicationEventPublisher eventPublisher;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+
+    @EventListener
+    public void handlePaymentRequestEvent(PaymentRequestEvent event) {
+        final XPaymentAdapterRequestMessage request = event.getRequestMessage();
+        send(request);
+    }
 
     @Override
     public void send(XPaymentAdapterRequestMessage request) {
         log.info("Received payment request: messageId={}, paymentGuid={}, amount={}, currency={}",
-                request.messageId(), request.paymentGuid(), request.amount(), request.currency());
+            request.messageId(), request.paymentGuid(), request.amount(), request.currency());
 
-        UUID txId = UUID.randomUUID();
+        final UUID txId = UUID.randomUUID();
         log.debug("Generated transaction reference ID: {}", txId);
 
         log.debug("Payment request sent to adapter: paymentGuid={}, messageId={}",
-                request.paymentGuid(), request.messageId());
+            request.paymentGuid(), request.messageId());
 
         // Schedule async processing after 30 seconds
         scheduler.schedule(() -> processPayment(request, txId), 30, TimeUnit.SECONDS);
@@ -43,13 +53,14 @@ public class InMemoryXPaymentAdapterMessageBroker implements AsyncSender<XPaymen
                 request.paymentGuid(), txId, request.amount());
 
         // Determine status based on amount divisibility by 2
-        XPaymentAdapterStatus status = isAmountDivisibleByTwo(request.amount())
-                ? XPaymentAdapterStatus.SUCCEEDED
-                : XPaymentAdapterStatus.CANCELED;
+        final XPaymentAdapterStatus status = isAmountDivisibleByTwo(request.amount())
+            ? XPaymentAdapterStatus.SUCCEEDED
+            : XPaymentAdapterStatus.CANCELED;
 
+        final String reason = status == XPaymentAdapterStatus.SUCCEEDED
+            ? "Amount is divisible by 2" : "Amount is not divisible by 2";
         log.info("Payment processing completed: paymentGuid={}, status={}, reason={}",
-                request.paymentGuid(), status,
-                status == XPaymentAdapterStatus.SUCCEEDED ? "Amount is divisible by 2" : "Amount is not divisible by 2");
+            request.paymentGuid(), status, reason);
 
         emit(request, txId, status);
     }
@@ -60,22 +71,25 @@ public class InMemoryXPaymentAdapterMessageBroker implements AsyncSender<XPaymen
 
     private void emit(XPaymentAdapterRequestMessage request, UUID txId, XPaymentAdapterStatus status) {
         log.debug("Emitting response message: paymentGuid={}, status={}, transactionRefId={}",
-                request.paymentGuid(), status, txId);
+            request.paymentGuid(), status, txId);
 
-        XPaymentAdapterResponseMessage result = new XPaymentAdapterResponseMessage(
-                request.paymentGuid(),
-                UUID.randomUUID(),
-                request.amount(),
-                request.currency(),
-                txId,
-                status,
-                OffsetDateTime.now()
+        final XPaymentAdapterResponseMessage result = new XPaymentAdapterResponseMessage(
+            request.paymentGuid(),
+            UUID.randomUUID(),
+            request.amount(),
+            request.currency(),
+            txId,
+            status,
+            Instant.now()
         );
 
         log.info("Sending response to listener: messageId={}, paymentGuid={}, status={}",
-                result.messageId(), result.paymentGuid(), result.status());
+            result.messageId(), result.paymentGuid(), result.status());
 
-        resultListener.onMessage(result);
+        // Публикуем событие вместо прямого вызова listener
+        eventPublisher.publishEvent(new PaymentResponseEvent(this, result));
+        log.debug("Payment response event published: messageId={}, paymentGuid={}, status={}",
+            result.messageId(), result.paymentGuid(), result.status());
     }
 
     @PreDestroy

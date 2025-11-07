@@ -519,7 +519,7 @@ class PaymentServiceTest {
                 testPayment.getAmount(),
                 testPayment.getCurrency(),
                 UUID.randomUUID(),
-                testPayment.getUpdatedAt()
+                testPayment.getUpdatedAt().toInstant()
         );
 
         when(paymentMapper.toPaymentEntity(testPaymentDto)).thenReturn(testPayment);
