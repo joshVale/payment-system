@@ -1,7 +1,7 @@
 package com.example.paymentserviceapp.service.impl;
 
+import com.example.paymentserviceapp.async.AsyncSender;
 import com.example.paymentserviceapp.async.XPaymentAdapterRequestMessage;
-import com.example.paymentserviceapp.async.event.PaymentRequestEvent;
 import com.example.paymentserviceapp.dto.PaymentDto;
 import com.example.paymentserviceapp.exception.EntityNotFoundException;
 import com.example.paymentserviceapp.mapper.PaymentMapper;
@@ -15,7 +15,6 @@ import com.example.paymentserviceapp.service.PaymentService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -33,7 +32,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
     private final XPaymentAdapterMapper xPaymentAdapterMapper;
-    private final ApplicationEventPublisher eventPublisher;
+    private final AsyncSender<XPaymentAdapterRequestMessage> asyncSender;
 
     @Override
     public List<PaymentDto> getAllPayments() {
@@ -67,11 +66,11 @@ public class PaymentServiceImpl implements PaymentService {
         log.info("Payment created with PROCESSING status: guid={}, amount={}, currency={}",
             savedPayment.getGuid(), savedPayment.getAmount(), savedPayment.getCurrency());
 
-        // Отправляем событие для асинхронной обработки через X Payment Adapter
+        // Отправляем запрос для асинхронной обработки через X Payment Adapter в Kafka
         final XPaymentAdapterRequestMessage requestMessage =
             xPaymentAdapterMapper.toXPaymentAdapterRequestMessage(savedPayment);
-        eventPublisher.publishEvent(new PaymentRequestEvent(this, requestMessage));
-        log.debug("Payment request event published: messageId={}, paymentGuid={}",
+        asyncSender.send(requestMessage);
+        log.debug("Payment request sent to Kafka: messageId={}, paymentGuid={}",
             requestMessage.messageId(), requestMessage.paymentGuid());
 
         return paymentMapper.toPaymentDto(savedPayment);
