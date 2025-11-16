@@ -2,7 +2,7 @@ package com.example.xpaymentadapterapp.async.validation;
 
 import com.example.xpaymentadapterapp.async.XPaymentAdapterRequestMessage;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -13,7 +13,7 @@ import java.util.Map;
  * Validates amount, currency, and decimal places according to ISO 4217.
  */
 @Slf4j
-@Component
+@Service
 public class PaymentMessageValidator {
 
     /**

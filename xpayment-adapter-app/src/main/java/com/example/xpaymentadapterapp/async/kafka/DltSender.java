@@ -1,29 +1,25 @@
 package com.example.xpaymentadapterapp.async.kafka;
 
 import com.example.xpaymentadapterapp.async.XPaymentAdapterRequestMessage;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
 
 
 @Slf4j
-@Service
+@Component
+@RequiredArgsConstructor
 public class DltSender {
 
     private final KafkaTemplate<String, XPaymentAdapterRequestMessage> template;
-    private final String dltTopic;
-
-    public DltSender(
-            KafkaTemplate<String, XPaymentAdapterRequestMessage> template,
-            @Value("${app.kafka.topics.x-payment-adapter.dlt:xpayment-adapter.requests.DLT}") String dltTopic
-    ) {
-        this.template = template;
-        this.dltTopic = dltTopic;
-    }
+    
+    @Value("${app.kafka.topics.x-payment-adapter.dlt:xpayment-adapter.requests.DLT}")
+    private String dltTopic;
 
     /**
      * Sends an invalid message to the Dead Letter Topic.

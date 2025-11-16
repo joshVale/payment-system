@@ -2,6 +2,7 @@ package com.example.xpaymentadapterapp.async.kafka;
 
 import com.example.xpaymentadapterapp.async.AsyncSender;
 import com.example.xpaymentadapterapp.async.XPaymentAdapterResponseMessage;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -12,18 +13,13 @@ import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class KafkaXPaymentAdapterRequestSender implements AsyncSender<XPaymentAdapterResponseMessage> {
 
     private final KafkaTemplate<String, XPaymentAdapterResponseMessage> template;
-    private final String topic;
-
-    public KafkaXPaymentAdapterRequestSender(
-            KafkaTemplate<String, XPaymentAdapterResponseMessage> template,
-            @Value("${app.kafka.topics.x-payment-adapter.response:xpayment-adapter.responses}") String topic
-    ) {
-        this.template = template;
-        this.topic = topic;
-    }
+    
+    @Value("${app.kafka.topics.x-payment-adapter.response:xpayment-adapter.responses}")
+    private String topic;
 
     @Override
     public void send(XPaymentAdapterResponseMessage msg) {
