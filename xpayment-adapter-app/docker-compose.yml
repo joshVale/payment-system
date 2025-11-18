@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  x-payment-provider:
+    build:
+      context: ../../xpayment-api
+      dockerfile: Dockerfile
+    container_name: x-payment-provider
+    ports:
+      - "9999:8080"
+    hostname: x-payment-provider
+    environment:
+      SPRING_APPLICATION_NAME: xpayment-api
+      SPRING_SERVER_PORT: 9999
+      SERVER_PORT: 9999
+      SPRING_DATASOURCE_URL: jdbc:h2:mem:testdb
+      SPRING_DATASOURCE_DRIVERCLASSNAME: org.h2.Driver
+      SPRING_DATASOURCE_USERNAME: sa
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.H2Dialect
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: INFO
+      LOGGING_LEVEL_COM_IPRODY: DEBUG
+      XPAYMENT_PROCESSING_DELAY_MS: 60000
+    networks:
+      - backend
+    restart: unless-stopped
+
+networks:
+  backend:
+    driver: bridge
+
