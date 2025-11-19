@@ -7,12 +7,12 @@ import com.iprody.xpayment.app.api.client.DefaultApi;
 import com.iprody.xpayment.app.api.model.ChargeResponse;
 import com.iprody.xpayment.app.api.model.CreateChargeRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 
 import java.util.UUID;
 
-@Service
+@Component
 @RequiredArgsConstructor
 class XPaymentProviderGatewayImpl implements XPaymentProviderGateway {
 

@@ -4,16 +4,14 @@ import com.example.xpaymentadapterapp.api.XPaymentProviderGateway;
 import com.example.xpaymentadapterapp.api.dto.CreateChargeRequestDto;
 import com.example.xpaymentadapterapp.api.dto.CreateChargeResponseDto;
 import com.example.xpaymentadapterapp.async.kafka.DltSender;
+import com.example.xpaymentadapterapp.async.mapper.XPaymentAdapterResponseMapper;
 import com.example.xpaymentadapterapp.async.validation.PaymentMessageValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -26,6 +24,7 @@ public class RequestMessageHandler implements MessageHandler<XPaymentAdapterRequ
     private final PaymentMessageValidator validator;
     private final DltSender dltSender;
     private final XPaymentProviderGateway xPaymentProviderGateway;
+    private final XPaymentAdapterResponseMapper responseMapper;
 
     @Override
     public void handle(XPaymentAdapterRequestMessage message) {
@@ -48,7 +47,7 @@ public class RequestMessageHandler implements MessageHandler<XPaymentAdapterRequ
 
         try {
             CreateChargeResponseDto providerResponse = xPaymentProviderGateway.createCharge(requestDto);
-            XPaymentAdapterResponseMessage responseMessage = mapToAdapterResponse(message, providerResponse);
+            XPaymentAdapterResponseMessage responseMessage = responseMapper.toResponseMessage(message, providerResponse);
             sender.send(responseMessage);
             log.info("Payment response sent: paymentGuid={}, status={}, transactionRefId={}",
                     responseMessage.paymentGuid(), responseMessage.status(), responseMessage.transactionRefId());
@@ -74,51 +73,6 @@ public class RequestMessageHandler implements MessageHandler<XPaymentAdapterRequ
                 buildReceiptEmail(message.paymentGuid()),
                 metadata
         );
-    }
-
-    private XPaymentAdapterResponseMessage mapToAdapterResponse(
-            XPaymentAdapterRequestMessage original,
-            CreateChargeResponseDto providerResponse
-    ) {
-        BigDecimal amount = providerResponse.amount() != null ? providerResponse.amount() : original.amount();
-        String currency = providerResponse.currency() != null ? providerResponse.currency() : original.currency();
-        UUID transactionRefId = providerResponse.id() != null ? providerResponse.id() : original.paymentGuid();
-        Instant occurredAt = resolveOccurredAt(providerResponse, original);
-
-        return new XPaymentAdapterResponseMessage(
-                original.paymentGuid(),
-                original.messageId(),
-                amount,
-                currency,
-                transactionRefId,
-                mapStatus(providerResponse.status()),
-                occurredAt
-        );
-    }
-
-    private Instant resolveOccurredAt(CreateChargeResponseDto providerResponse, XPaymentAdapterRequestMessage original) {
-        if (providerResponse.chargedAt() != null) {
-            return providerResponse.chargedAt();
-        }
-        if (providerResponse.createdAt() != null) {
-            return providerResponse.createdAt();
-        }
-        if (original.occurredAt() != null) {
-            return original.occurredAt();
-        }
-        return Instant.now();
-    }
-
-    private XPaymentAdapterStatus mapStatus(String providerStatus) {
-        if (providerStatus == null) {
-            return XPaymentAdapterStatus.PROCESSING;
-        }
-
-        return switch (providerStatus.toLowerCase(Locale.ROOT)) {
-            case "succeeded" -> XPaymentAdapterStatus.SUCCEEDED;
-            case "canceled", "cancelled" -> XPaymentAdapterStatus.CANCELED;
-            default -> XPaymentAdapterStatus.PROCESSING;
-        };
     }
 
     private String buildCustomerName(UUID paymentGuid) {
