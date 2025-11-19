@@ -26,6 +26,38 @@ services:
       - backend
     restart: unless-stopped
 
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      # NOTE: Download the delayed message exchange plugin from:
+      # https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releases
+      # and place the .ez file in the same directory as this docker-compose.yml file
+      # The file name should match the pattern: rabbitmq_delayed_message_exchange-*.ez
+      - ./rabbitmq_delayed_message_exchange-3.13.0.ez:/opt/rabbitmq/plugins/rabbitmq_delayed_message_exchange.ez
+    command: >
+      sh -c "rabbitmq-plugins enable rabbitmq_delayed_message_exchange rabbitmq_management &&
+             rabbitmq-server"
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  rabbitmq_data:
+
 networks:
   backend:
     driver: bridge

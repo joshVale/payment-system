@@ -6,6 +6,7 @@ import com.example.xpaymentadapterapp.api.dto.CreateChargeResponseDto;
 import com.example.xpaymentadapterapp.async.kafka.DltSender;
 import com.example.xpaymentadapterapp.async.mapper.XPaymentAdapterResponseMapper;
 import com.example.xpaymentadapterapp.async.validation.PaymentMessageValidator;
+import com.example.xpaymentadapterapp.checkstate.PaymentStateCheckRegistrar;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,7 @@ public class RequestMessageHandler implements MessageHandler<XPaymentAdapterRequ
     private final DltSender dltSender;
     private final XPaymentProviderGateway xPaymentProviderGateway;
     private final XPaymentAdapterResponseMapper responseMapper;
+    private final PaymentStateCheckRegistrar paymentStateCheckRegistrar;
 
     @Override
     public void handle(XPaymentAdapterRequestMessage message) {
@@ -51,6 +53,18 @@ public class RequestMessageHandler implements MessageHandler<XPaymentAdapterRequ
             sender.send(responseMessage);
             log.info("Payment response sent: paymentGuid={}, status={}, transactionRefId={}",
                     responseMessage.paymentGuid(), responseMessage.status(), responseMessage.transactionRefId());
+            
+            // Register payment for status checking
+            if (providerResponse.id() != null && providerResponse.order() != null) {
+                paymentStateCheckRegistrar.register(
+                        providerResponse.id(),
+                        providerResponse.order(),
+                        providerResponse.amount(),
+                        providerResponse.currency()
+                );
+                log.info("Payment registered for status checking: chargeGuid={}, paymentGuid={}",
+                        providerResponse.id(), providerResponse.order());
+            }
         } catch (RestClientException ex) {
             log.error("Error calling X Payment Provider: paymentGuid={}", message.paymentGuid(), ex);
             dltSender.sendToDlt(message, ex.getMessage());
