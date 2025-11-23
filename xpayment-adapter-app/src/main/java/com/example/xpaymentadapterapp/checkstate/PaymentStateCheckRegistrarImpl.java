@@ -1,39 +1,27 @@
 package com.example.xpaymentadapterapp.checkstate;
 
+import com.example.xpaymentadapterapp.checkstate.config.RabbitMQConstants;
+import com.example.xpaymentadapterapp.checkstate.config.RabbitMQProperties;
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
 import java.math.BigDecimal;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class PaymentStateCheckRegistrarImpl implements PaymentStateCheckRegistrar {
 
     private final RabbitTemplate rabbitTemplate;
-    private final String exchangeName;
-    private final String routingKey;
-    
-    @Value("${app.rabbitmq.interval-ms:60000}")
-    private long intervalMs;
-    
-    @Autowired
-    public PaymentStateCheckRegistrarImpl(
-            RabbitTemplate rabbitTemplate,
-            @Value("${app.rabbitmq.exchange-name}") String exchangeName,
-            @Value("${app.rabbitmq.queue-name}") String routingKey
-    ) {
-        this.rabbitTemplate = rabbitTemplate;
-        this.exchangeName = exchangeName;
-        this.routingKey = routingKey;
-    }
+    private final RabbitMQProperties rabbitMQProperties;
+
     @Override
     public void register(
             UUID chargeGuid,
             UUID paymentGuid,
             BigDecimal amount,
             String currency
-
     ) {
         PaymentCheckStateMessage message = new PaymentCheckStateMessage(
                 chargeGuid,
@@ -42,16 +30,13 @@ public class PaymentStateCheckRegistrarImpl implements PaymentStateCheckRegistra
                 currency
         );
         rabbitTemplate.convertAndSend(
-
-                exchangeName,
-                routingKey,
+                rabbitMQProperties.exchangeName(),
+                rabbitMQProperties.queueName(),
                 message,
                 m -> {
-                    m.getMessageProperties().setHeader("x-delay",
-
-                            intervalMs);
-                    m.getMessageProperties().setHeader("x-retry-count", 1);
-
+                    m.getMessageProperties().setHeader(RabbitMQConstants.X_DELAY_HEADER,
+                            rabbitMQProperties.intervalMs());
+                    m.getMessageProperties().setHeader(RabbitMQConstants.X_RETRY_COUNT_HEADER, 1);
                     return m;
                 }
         );

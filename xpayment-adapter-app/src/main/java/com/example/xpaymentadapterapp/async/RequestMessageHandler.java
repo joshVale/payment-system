@@ -55,6 +55,7 @@ public class RequestMessageHandler implements MessageHandler<XPaymentAdapterRequ
                     responseMessage.paymentGuid(), responseMessage.status(), responseMessage.transactionRefId());
             
             // Register payment for status checking
+            // Проверка необходима, т.к. без chargeGuid и paymentGuid невозможно отслеживать статус платежа
             if (providerResponse.id() != null && providerResponse.order() != null) {
                 paymentStateCheckRegistrar.register(
                         providerResponse.id(),
@@ -63,6 +64,10 @@ public class RequestMessageHandler implements MessageHandler<XPaymentAdapterRequ
                         providerResponse.currency()
                 );
                 log.info("Payment registered for status checking: chargeGuid={}, paymentGuid={}",
+                        providerResponse.id(), providerResponse.order());
+            } else {
+                log.warn("Cannot register payment for status checking: chargeGuid={}, paymentGuid={}. " +
+                        "Payment status will not be automatically checked.",
                         providerResponse.id(), providerResponse.order());
             }
         } catch (RestClientException ex) {

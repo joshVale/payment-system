@@ -1,58 +1,39 @@
 package com.example.xpaymentadapterapp.checkstate;
 
+import com.example.xpaymentadapterapp.checkstate.config.RabbitMQConstants;
+import com.example.xpaymentadapterapp.checkstate.config.RabbitMQProperties;
 import com.example.xpaymentadapterapp.checkstate.handler.PaymentStatusCheckHandler;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class PaymentStateCheckListener {
 
     private final RabbitTemplate rabbitTemplate;
-    private final String exchangeName;
-    private final String routingKey;
-    private final String dlxExchangeName;
-    private final String dlxRoutingKey;
+    private final RabbitMQProperties rabbitMQProperties;
     private final PaymentStatusCheckHandler paymentStatusCheckHandler;
-
-    @Value("${app.rabbitmq.max-attempts:60}")
-    private int maxRetries;
-    
-    @Value("${app.rabbitmq.interval-ms:60000}")
-    private long intervalMs;
-
-    @Autowired
-    public PaymentStateCheckListener(
-            RabbitTemplate rabbitTemplate,
-            @Value("${app.rabbitmq.exchange-name}") String exchangeName,
-            @Value("${app.rabbitmq.queue-name}") String routingKey,
-            @Value("${app.rabbitmq.dlx-exchange-name}") String dlxExchangeName,
-            @Value("${app.rabbitmq.dlx-routing-key}") String dlxRoutingKey,
-            PaymentStatusCheckHandler paymentStatusCheckHandler
-    ) {
-        this.rabbitTemplate = rabbitTemplate;
-        this.exchangeName = exchangeName;
-        this.routingKey = routingKey;
-        this.dlxExchangeName = dlxExchangeName;
-        this.dlxRoutingKey = dlxRoutingKey;
-        this.paymentStatusCheckHandler = paymentStatusCheckHandler;
-    }
 
     @RabbitListener(queues = "${app.rabbitmq.queue-name}")
     public void handle(PaymentCheckStateMessage message, Message raw) {
         MessageProperties props = raw.getMessageProperties();
-        int retryCount = (int) props.getHeaders().getOrDefault("x-retry-count", 0);
+        int retryCount = (int) props.getHeaders().getOrDefault(RabbitMQConstants.X_RETRY_COUNT_HEADER, 0);
         
         boolean completed = paymentStatusCheckHandler.handle(message.chargeGuid());
         if (completed) {
+            log.info("Payment status check completed for chargeGuid: {}, paymentGuid: {}", 
+                    message.chargeGuid(), message.paymentGuid());
+            // Уведомление payment-service уже отправлено через PaymentCompletionNotifier в PaymentStatusCheckHandler
             return;
         }
         
-        if (retryCount < maxRetries) {
+        if (retryCount < rabbitMQProperties.maxRetries()) {
             // Планируем следующую проверку
             PaymentCheckStateMessage newMessage = new PaymentCheckStateMessage(
                     message.chargeGuid(),
@@ -61,28 +42,34 @@ public class PaymentStateCheckListener {
                     message.currency()
             );
             rabbitTemplate.convertAndSend(
-                    exchangeName,
-                    routingKey,
+                    rabbitMQProperties.exchangeName(),
+                    rabbitMQProperties.queueName(),
                     newMessage,
                     m -> {
-                        m.getMessageProperties().setHeader("x-delay", intervalMs);
-                        m.getMessageProperties().setHeader("x-retry-count", retryCount + 1);
+                        m.getMessageProperties().setHeader(RabbitMQConstants.X_DELAY_HEADER, 
+                                rabbitMQProperties.intervalMs());
+                        m.getMessageProperties().setHeader(RabbitMQConstants.X_RETRY_COUNT_HEADER, retryCount + 1);
                         return m;
                     }
             );
+            log.debug("Scheduled next status check for chargeGuid: {}, retryCount: {}", 
+                    message.chargeGuid(), retryCount + 1);
         } else {
             // Исчерпали попытки -- кладём сообщение в DLX
             rabbitTemplate.convertAndSend(
-                    dlxExchangeName,
-                    dlxRoutingKey,
+                    rabbitMQProperties.dlxExchangeName(),
+                    rabbitMQProperties.dlxRoutingKey(),
                     message,
                     m -> {
-                        m.getMessageProperties().setHeader("x-retry-count", retryCount);
-                        m.getMessageProperties().setHeader("x-final-status", "TIMEOUT");
-                        m.getMessageProperties().setHeader("x-original-queue", routingKey);
+                        m.getMessageProperties().setHeader(RabbitMQConstants.X_RETRY_COUNT_HEADER, retryCount);
+                        m.getMessageProperties().setHeader(RabbitMQConstants.X_FINAL_STATUS_HEADER, "TIMEOUT");
+                        m.getMessageProperties().setHeader(RabbitMQConstants.X_ORIGINAL_QUEUE_HEADER, 
+                                rabbitMQProperties.queueName());
                         return m;
                     }
             );
+            log.warn("Max retries exceeded for chargeGuid: {}, paymentGuid: {}, sending to DLX", 
+                    message.chargeGuid(), message.paymentGuid());
         }
     }
 }

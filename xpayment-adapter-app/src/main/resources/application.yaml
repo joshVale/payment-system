@@ -6,7 +6,7 @@ spring:
     name: x-payment-adapter-app
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -31,8 +31,8 @@ spring:
       concurrency: 1
 
   rabbitmq:
-    host: localhost
-    port: 5672
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
     username: admin
     password: admin
 
@@ -54,7 +54,7 @@ app:
     interval-ms: 60000
   x-payment-provider-api:
     client:
-      url: http://localhost:9999
+      url: ${APP_X_PAYMENT_PROVIDER_API_CLIENT_URL:http://localhost:9999}
       username: paymentAgentIprody
       password: iprodyTestPassword0123
       account: paymentAgentIprodyApiToken

@@ -1,17 +1,14 @@
 package com.example.xpaymentadapterapp.checkstate.handler;
 
 import com.example.xpaymentadapterapp.api.XPaymentProviderGateway;
+import com.example.xpaymentadapterapp.api.dto.ChargeStatus;
 import com.example.xpaymentadapterapp.api.dto.CreateChargeResponseDto;
-import com.example.xpaymentadapterapp.async.AsyncSender;
-import com.example.xpaymentadapterapp.async.XPaymentAdapterResponseMessage;
-import com.example.xpaymentadapterapp.async.XPaymentAdapterStatus;
+import com.example.xpaymentadapterapp.checkstate.notification.PaymentCompletionNotifier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 
-import java.time.Instant;
-import java.util.Locale;
 import java.util.UUID;
 
 @Slf4j
@@ -20,7 +17,7 @@ import java.util.UUID;
 public class PaymentStatusCheckHandlerImpl implements PaymentStatusCheckHandler {
 
     private final XPaymentProviderGateway xPaymentProviderGateway;
-    private final AsyncSender<XPaymentAdapterResponseMessage> asyncSender;
+    private final PaymentCompletionNotifier paymentCompletionNotifier;
 
     @Override
     public boolean handle(UUID chargeGuid) {
@@ -38,24 +35,11 @@ public class PaymentStatusCheckHandlerImpl implements PaymentStatusCheckHandler 
                 return false;
             }
 
-            String statusLower = status.toLowerCase(Locale.ROOT);
-            boolean isTerminal = "succeeded".equals(statusLower) || "canceled".equals(statusLower) || "cancelled".equals(statusLower);
+            boolean isTerminal = ChargeStatus.isTerminal(status);
 
             if (isTerminal) {
-                log.info("Charge {} has terminal status: {}, sending notification", chargeGuid, status);
-                
-                XPaymentAdapterStatus adapterStatus = mapStatus(status);
-                XPaymentAdapterResponseMessage responseMessage = new XPaymentAdapterResponseMessage(
-                        chargeResponse.order(),
-                        UUID.randomUUID(), // messageId
-                        chargeResponse.amount(),
-                        chargeResponse.currency(),
-                        chargeResponse.id(),
-                        adapterStatus,
-                        chargeResponse.chargedAt() != null ? chargeResponse.chargedAt() : Instant.now()
-                );
-                
-                asyncSender.send(responseMessage);
+                log.info("Charge {} has terminal status: {}, notifying payment-service", chargeGuid, status);
+                paymentCompletionNotifier.notifyPaymentCompletion(chargeResponse);
                 return true;
             }
 
@@ -66,18 +50,6 @@ public class PaymentStatusCheckHandlerImpl implements PaymentStatusCheckHandler 
             log.error("Error retrieving charge status for chargeGuid: {}", chargeGuid, ex);
             return false;
         }
-    }
-
-    private XPaymentAdapterStatus mapStatus(String providerStatus) {
-        if (providerStatus == null) {
-            return XPaymentAdapterStatus.PROCESSING;
-        }
-
-        return switch (providerStatus.toLowerCase(Locale.ROOT)) {
-            case "succeeded" -> XPaymentAdapterStatus.SUCCEEDED;
-            case "canceled", "cancelled" -> XPaymentAdapterStatus.CANCELED;
-            default -> XPaymentAdapterStatus.PROCESSING;
-        };
     }
 }
 

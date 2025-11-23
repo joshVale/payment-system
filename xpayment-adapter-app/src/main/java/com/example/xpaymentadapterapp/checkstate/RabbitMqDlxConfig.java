@@ -1,31 +1,29 @@
 package com.example.xpaymentadapterapp.checkstate;
 
+import com.example.xpaymentadapterapp.checkstate.config.RabbitMQProperties;
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@RequiredArgsConstructor
 public class RabbitMqDlxConfig {
     
-    @Value("${app.rabbitmq.dlx-exchange-name}")
-    private String dlxExchangeName;
-    
-    @Value("${app.rabbitmq.dlx-routing-key}")
-    private String dlxRoutingKey;
+    private final RabbitMQProperties rabbitMQProperties;
     
     @Bean
     DirectExchange deadLetterExchange() {
-        return new DirectExchange(dlxExchangeName);
+        return new DirectExchange(rabbitMQProperties.dlxExchangeName());
     }
     
     @Bean
     Queue deadLetterQueue() {
-        return QueueBuilder.durable(dlxExchangeName + ".queue").build();
+        return QueueBuilder.durable(rabbitMQProperties.dlxExchangeName() + ".queue").build();
     }
     
     @Bean
@@ -33,6 +31,6 @@ public class RabbitMqDlxConfig {
         return BindingBuilder
                 .bind(deadLetterQueue())
                 .to(deadLetterExchange())
-                .with(dlxRoutingKey);
+                .with(rabbitMQProperties.dlxRoutingKey());
     }
 }
