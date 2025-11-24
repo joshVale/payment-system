@@ -25,6 +25,9 @@ services:
 
   #  Spring Boot приложение
   payment-service-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: payment-service-app
     container_name: payment-service-app
     ports:
@@ -35,7 +38,6 @@ services:
       - kafka
     environment:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://keycloak:8080/realms/iprody-lms"
-
     networks:
       - backend
     restart: unless-stopped
@@ -57,7 +59,7 @@ services:
       - backend
     restart: unless-stopped
 
-  #  PgAdmin
+  # PgAdmin
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pgadmin
@@ -96,7 +98,7 @@ services:
       - backend
     restart: unless-stopped
 
-  #  Kafka UI
+  # Kafka UI
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
@@ -111,9 +113,31 @@ services:
       - backend
     restart: unless-stopped
 
+  rabbitmq:
+    image: rabbitmq:4.1.4-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ../xpayment-adapter-app/rabbitmq_delayed_message_exchange-3.13.0.ez:/opt/rabbitmq/plugins/rabbitmq_delayed_message_exchange-3.13.0.ez
+    command: >
+      bash -c "
+        rabbitmq-plugins enable --offline rabbitmq_delayed_message_exchange &&
+        rabbitmq-server
+      "
+    networks:
+      - backend
+    restart: unless-stopped
+
 # Volume для хранения данных PostgreSQL
 volumes:
   pgdata:
+  rabbitmq_data:
 
 # Общая сеть для контейнеров
 networks:
