@@ -4,11 +4,13 @@ server:
 spring:
   application:
     name: payment-service-app
+
   datasource:
-    url: jdbc:postgresql://localhost:5432/payment-db
+    url: jdbc:postgresql://postgres:5432/payment-db
     username: admin
     password: secret
     driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
       ddl-auto: none
@@ -17,6 +19,61 @@ spring:
       hibernate:
         format_sql: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.yaml
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://localhost:8085/realms/iprody-lms}
+
+  logging:
+    level:
+      com.example.paymentserviceapp: DEBUG
+      org.springframework.web: INFO
+      org.springframework.data: INFO
+      org.springframework.security: INFO
+      org.springframework.kafka: INFO
+      org.apache.kafka: WARN
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: payment-service-consumers
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: "com.example.paymentserviceapp.async.XPaymentAdapterResponseMessage"
+        spring.json.type.mapping: "xpaymentAdapterResponseMessage:com.example.paymentserviceapp.async.XPaymentAdapterResponseMessage"
+    listener:
+      ack-mode: manual
+      concurrency: 1
+
+  management:
+    endpoints:
+        web:
+          exposure:
+            include: health,info,liquibase,beans,metrics,env,loggers
+
+app:
+  kafka:
+    topics:
+      xpayment-adapter:
+        request: xpayment-adapter.requests
+        response: xpayment-adapter.responses
+rabbitmq:
+  exchange-name: payment-state-check-exchange
+  queue-name: payment-state-check-queue
+  max-retries: 60
+  interval-ms: 60000

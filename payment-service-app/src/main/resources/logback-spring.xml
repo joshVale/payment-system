@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="30 seconds">
+
+    <!-- ========= ПЕРЕМЕННЫЕ ========= -->
+    <property name="LOG_PATH" value="logs" />
+    <property name="LOG_FILE" value="${LOG_PATH}/app.log" />
+    <property name="LOG_LEVEL" value="${LOG_LEVEL:-INFO}" />
+    <property name="LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level ${PID:- } --- [%thread] %-40.40logger{50} : %msg%n" />
+
+    <!-- ========= КОНСОЛЬНЫЙ ЛОГ ========= -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ========= ФАЙЛОВЫЙ ЛОГ С РОТАЦИЕЙ ========= -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- Максимальный размер файла 500mb -->
+            <maxFileSize>500MB</maxFileSize>
+            <!-- Максимальное количество архивов 20 -->
+            <maxHistory>20</maxHistory>
+            <!-- Паттерн для архивирования -->
+            <fileNamePattern>${LOG_PATH}/app-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+            <!-- Общий лимит размера логов -->
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ========= КОРНЕВОЙ ЛОГГЕР ========= -->
+    <root level="${LOG_LEVEL}">
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="FILE" />
+    </root>
+
+</configuration>

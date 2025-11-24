@@ -1,0 +1,60 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: x-payment-adapter-app
+
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: xpayment-adapter-consumers
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: "com.example.xpaymentadapterapp.
+        async.XPaymentAdapterRequestMessage"
+        spring.json.type.mapping: "xpaymentAdapterRequestMessage:com.example.xpaymentadapterapp.async.XPaymentAdapterRequestMessage"
+        metadata.max.age.ms: 300000
+        client.dns.lookup: use_all_dns_ips
+
+    listener:
+      ack-mode: manual
+      concurrency: 1
+
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: admin
+    password: admin
+
+app:
+  kafka:
+    topics:
+      x-payment-adapter:
+        request: xpayment-adapter.requests
+        response: xpayment-adapter.responses
+        dlt: xpayment-adapter.requests.DLT
+  rabbitmq:
+    queue-name: payment-state-check-queue
+    exchange-name: payment-state-check-exchange
+    delayed-exchange-name: payment-state-check-exchange
+    dlx-exchange-name: payment-state-check-dlx-exchange
+    dlx-routing-key: payment-state-check-dlx
+    max-attempts: 60
+    max-retries: 60
+    interval-ms: 60000
+  x-payment-provider-api:
+    client:
+      url: ${APP_X_PAYMENT_PROVIDER_API_CLIENT_URL:http://localhost:9999}
+      username: paymentAgentIprody
+      password: iprodyTestPassword0123
+      account: paymentAgentIprodyApiToken
