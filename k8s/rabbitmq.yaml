@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rabbit
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: rabbit
+  labels:
+    app: rabbitmq
+spec:
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+    - name: http
+      port: 15672
+      targetPort: 15672
+  selector:
+    app: rabbitmq
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  namespace: rabbit
+  labels:
+    app: rabbitmq
+spec:
+  serviceName: rabbitmq
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3.13-management
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: amqp
+              containerPort: 5672
+            - name: http
+              containerPort: 15672
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              value: admin
+            - name: RABBITMQ_DEFAULT_PASS
+              value: admin
+            - name: RABBITMQ_ENABLED_PLUGINS_FILE
+              value: /etc/rabbitmq/enabled_plugins
+            - name: RABBITMQ_PLUGINS_DIR
+              value: "/opt/rabbitmq/plugins:/opt/rabbitmq/custom-plugins"
+          volumeMounts:
+            - name: plugins
+              mountPath: /opt/rabbitmq/custom-plugins
+              readOnly: true
+            - name: enabled-plugins
+              mountPath: /etc/rabbitmq/enabled_plugins
+              subPath: enabled_plugins
+              readOnly: true
+            - name: definitions
+              mountPath: /etc/rabbitmq/definitions.json
+              subPath: definitions.json
+              readOnly: true
+      volumes:
+        - name: plugins
+          secret:
+            secretName: rabbitmq-delayed-plugin
+        - name: enabled-plugins
+          configMap:
+            name: rabbitmq-enabled-plugins
+        - name: definitions
+          secret:
+            secretName: rabbitmq-definitions
+
+
